@@ -1,0 +1,18 @@
+#!/bin/bash
+#------------------------------------------------------------------------------------------
+# Autor: Alberto Valero Mlynaricova
+# Fecha: 16/12/2023
+#
+# Descripción:  script que ejecuta un programa en python que crea recursos
+#               USO: sudo   recurso       recurso1            alumnos
+#                           programa    nombre recurso      nombre grupo del dominio
+#------------------------------------------------------------------------------------------
+
+if [ $# -ne 2 ]; then
+    echo "Faltan argumentos... Uso: sudo recurso nombre_recurso grupo"
+    exit 1
+fi
+
+yes | pip install --break-system-packages pywinrm > /dev/null
+
+python3 nuevo_recurso.py $1 $2
