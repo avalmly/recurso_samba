@@ -53,8 +53,16 @@ def crear_grupo_ad(host, usuario, contrasena, grupo):
     else:
         print("Error al copiar la clave pública al servidor.")
 
-    # Conectar al servidor y realizar la acción necesaria
-    # ... tu lógica para crear el grupo en Active Directory
+    # Comando PowerShell para crear un grupo en Active Directory
+    script_ps = f'New-ADGroup -Name "{grupo}" -GroupScope Global'       # Al no especificar GroupSecurity, se crea uno de Seguridad por defecto
+    
+    # Comando de ejecución
+    cmd_ssh = f'sshpass -p "{contrasena}" ssh {usuario}@{host}'
+    cmd = f'{cmd_ssh} \'powershell -NoProfile -NonInteractive -Command "$password = ConvertTo-SecureString -String \'{contrasena}\' -AsPlainText -Force; $cred = New-Object -TypeName PSCredential -ArgumentList \'{usuario_ps}\', $password; Invoke-Command -Credential $cred -ScriptBlock {{ {script_ps} }}"\''
+
+    # Ejecutar el comando
+    subprocess.run(cmd, shell=True)
+
     print(f"Grupo '{grupo}' creado con éxito en Active Directory.")
 
 def check_grupo(host, usuario, contrasena, grupo):
