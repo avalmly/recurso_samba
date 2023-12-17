@@ -12,59 +12,81 @@ import sys
 import subprocess    
 
 def crear_grupo_ad(host, usuario, contrasena, grupo):
-    # Rutas de las claves SSH
-    private_key_path = os.path.expanduser("~/.ssh/id_rsa")
+    try:
+        # Rutas de las claves SSH
+        private_key_path = os.path.expanduser("~/.ssh/id_rsa")
 
-    # Verificar si la clave privada ya existe
-    if not os.path.exists(private_key_path):
-        # Generar clave privada y pública si no existen
-        os.system(f"ssh-keygen -t rsa -f {private_key_path} -N ''")
-        print("Claves generadas con éxito.")
+        # Verificar si la clave privada ya existe
+        if not os.path.exists(private_key_path):
+            # Generar clave privada y pública si no existen
+            os.system(f"ssh-keygen -t rsa -f {private_key_path} -N ''")
+            print("Claves generadas con éxito.")
 
-    # Comando para copiar la clave pública al servidor
-    copy_key_cmd = f"sshpass -p '{contrasena}' ssh-copy-id -i {private_key_path}.pub {usuario}@{host}"
+        # Comando para copiar la clave pública al servidor
+        copy_key_cmd = f"sshpass -p '{contrasena}' ssh-copy-id -i {private_key_path}.pub {usuario}@{host}"
 
-    # Verificar si la clave pública ya está en el servidor
-    result = os.system(copy_key_cmd)
+        # Verificar si la clave pública ya está en el servidor
+        result = os.system(copy_key_cmd)
 
-    if result == 0:
-        print("Clave pública copiada con éxito al servidor.")
-    else:
-        print("Error al copiar la clave pública al servidor.")
+        if result == 0:
+            print("Clave pública copiada con éxito al servidor.")
+        else:
+            raise Exception("Error al copiar la clave pública al servidor.")
 
-    # Ruta del script de PowerShell en el servidor remoto
-    script_ps_path = "crear_grupo.ps1"
-
-    # Comando de ejecución de PowerShell
-    cmd_ssh = f'sshpass -p "{contrasena}" ssh {usuario}@{host} "powershell -File {script_ps_path} -grupo \'{grupo}\'"'
-    
-    # Ejecutar el comando
-    subprocess.run(cmd_ssh, shell=True)
-
-    print(f"Grupo '{grupo}' creado con éxito en Active Directory.")
+        # Comando de ejecución de PowerShell
+        cmd_ssh = f'sshpass -p "{contrasena}" ssh {usuario}@{host} "powershell -NoProfile -NonInteractive -Command "New-ADGroup -Name {grupo} -GroupScope Global""'
+        
+        # Ejecutar el comando
+        subprocess.run(cmd_ssh, shell=True)
+        print(f"Grupo '{grupo}' creado con éxito en Active Directory.")
+    except Exception as e:
+        print(f"Error al crear el grupo: {e}")
 
 
 def check_grupo(host, usuario, contrasena, grupo):
-    lista_grupos = subprocess.run(['getent', 'group'], capture_output=True, text=True)
-    if grupo not in lista_grupos.stdout:
-        print("El grupo especificado no existe. Creando grupo...")
-        crear_grupo_ad(host, usuario, contrasena, grupo)
+    try:
+        lista_grupos = subprocess.run(['getent', 'group'], capture_output=True, text=True)
+        if grupo not in lista_grupos.stdout:
+            print("El grupo especificado no existe. Creando grupo...")
+            crear_grupo_ad(host, usuario, contrasena, grupo)
+        else:
+            print("El grupo ya existe")
+    except subprocess.CalledProcessError:
+        print("Error al obtener la lista de grupos")
 
 def crea_recurso(recurso, ruta, grupo):
-    with open("plantilla_recurso", 'r') as plantilla_recurso:
-        lineas = plantilla_recurso.read()
+    try:
+        with open("plantilla_recurso", 'r') as plantilla_recurso:
+            lineas = plantilla_recurso.read()
             
-    # Realizar las sustituciones
-    lineas_modificadas = (
-        lineas
-        .replace('recurso', recurso)
-        .replace('ruta', ruta)
-        .replace('grupo', grupo)
-    )
+        # Realizar las sustituciones
+        lineas_modificadas = (
+            lineas
+            .replace('recurso', recurso)
+            .replace('ruta', ruta)
+            .replace('grupo', grupo)
+        )
             
-    samba_file = open("/etc/samba/smb.conf", "a")                       # modo append
-    samba_file.write(f'\n{lineas_modificadas}\n')                       # Añade al final del fichero el recurso
-    samba_file.close()
+        samba_file = open("/etc/samba/smb.conf", "a")                       # modo append
+        samba_file.write(f'\n{lineas_modificadas}\n')                       # Añade al final del fichero el recurso
+        samba_file.close()
+        
+        # Verificar si el directorio ya existe antes de intentar crearlo
+        if not os.path.exists(f"/recursos/{recurso}"):
+            # Crear el directorio del recurso
+            os.makedirs(f"/recursos/{recurso}")
+
+            # Configurar permisos del directorio
+            os.chmod(f"/recursos/{recurso}", 0o770)
+            os.system(f"chown :{grupo} /recursos/{recurso}")
+
+            print(f"Recurso '{recurso}' y directorio creado con éxito.")
+        else:
+            print(f"El directorio '/recursos/{recurso}' ya existe.")
+    except FileNotFoundError:
+        print("Error: No se encontró el archivo de plantilla 'plantilla_recurso'.")
+    except Exception as e:
+        print(f"Error durante la creación del recurso: {e}")
 
 
 recurso = sys.argv[1]
@@ -75,3 +97,4 @@ usuario = "administrador"
 password = "Departamento1!"
 
 check_grupo(host, usuario, password, grupo)
+crea_recurso(recurso, ruta, grupo)
