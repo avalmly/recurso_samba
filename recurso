@@ -7,21 +7,32 @@
 #               USO: sudo   recurso       recurso1            alumnos
 #                           programa    nombre recurso      nombre grupo del dominio
 #------------------------------------------------------------------------------------------
-
+# Variables de entorno
+NOMBRE_RECURSO=$1
+GRUPO=$2
+# Verifica el número de argumentos
 if [ $# -ne 2 ]; then
     echo "Faltan argumentos... Uso: sudo recurso nombre_recurso grupo"
     exit 1
 fi
-
-apt -y update > /dev/null
-apt -y install ssh sshpass curl gnupg apt-transport-https > /dev/null
-yes | pip install --break-system-packages pywinrm > /dev/null
-
-curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-
+#
+#--------------------------------------------------------------------------------------------------------------------------------------------------------
+# Actualiza el sistema
+apt -y update > /dev/null || { echo "Error al actualizar el sistema"; exit 1; }
+# Instala dependencias
+apt -y install ssh sshpass curl gnupg apt-transport-https > /dev/null || { echo "Error al instalar dependencias"; exit 1; }
+# Instala pywinrm
+#yes | pip install --break-system-packages pywinrm > /dev/null || { echo "Error al instalar pywinrm"; exit 1; }
+#
+#--------------------------------------------------------------------------------------------------------------------------------------------------------
+# Añade la clave de Microsoft
+curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add - || { echo "Error al añadir la clave de Microsoft"; exit 1; }
+# Añade el repositorio de Microsoft e instala PowerShell
 codename=$(lsb_release -cs 2>/dev/null)
 echo "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-debian-$codename-prod/ $codename main" | tee /etc/apt/sources.list.d/microsoft.list
-apt -y update
-apt -y install powershell
-
-python3 nuevo_recurso.py $1 $2
+apt -y update || { echo "Error al actualizar el sistema"; exit 1; }
+apt -y install powershell || { echo "Error al instalar PowerShell"; exit 1; }
+#
+#--------------------------------------------------------------------------------------------------------------------------------------------------------
+# Ejecuta el script de Python
+python3 nuevo_recurso.py $NOMBRE_RECURSO $GRUPO
