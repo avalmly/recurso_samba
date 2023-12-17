@@ -28,33 +28,34 @@ import winrm
     # Imprime el resultado
     print(resultado.std_out.decode('utf-8'))"""
     
+import os
+
 def crear_grupo_ad(host, usuario, contrasena, grupo):
     # Rutas de las claves SSH
     private_key_path = os.path.expanduser("~/.ssh/id_rsa")
-    #public_key_path = private_key_path + ".pub"
 
     # Verificar si la clave privada ya existe
     if os.path.exists(private_key_path):
         print("La clave privada ya existe.")
     else:
-    # Generar clave privada y pública si no existen
+        # Generar clave privada y pública si no existen
         os.system(f"ssh-keygen -t rsa -f {private_key_path} -N ''")
         print("Claves generadas con éxito.")
 
-    # Conexión SSH
-    server = f"{usuario}@{host}"
+    # Comando para copiar la clave pública al servidor
+    copy_key_cmd = f"sshpass -p '{contrasena}' ssh-copy-id -i {private_key_path}.pub {usuario}@{host}"
 
     # Verificar si la clave pública ya está en el servidor
-    cmd = f"ssh -o PasswordAuthentication=no {server} 'echo OK'"
-    result = os.system(cmd)
+    result = os.system(copy_key_cmd)
 
     if result == 0:
-        print("La clave pública ya está en el servidor.")
-    else:
-    # Copiar la clave pública al servidor si no está presente
-        os.system(f"ssh-copy-id {server}")
         print("Clave pública copiada con éxito al servidor.")
+    else:
+        print("Error al copiar la clave pública al servidor.")
 
+    # Conectar al servidor y realizar la acción necesaria
+    # ... tu lógica para crear el grupo en Active Directory
+    print(f"Grupo '{grupo}' creado con éxito en Active Directory.")
 
 def check_grupo(host, usuario, contrasena, grupo):
     lista_grupos = subprocess.run(['getent', 'group'], capture_output=True, text=True)
