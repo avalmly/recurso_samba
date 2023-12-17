@@ -16,9 +16,7 @@ def crear_grupo_ad(host, usuario, contrasena, grupo):
     private_key_path = os.path.expanduser("~/.ssh/id_rsa")
 
     # Verificar si la clave privada ya existe
-    if os.path.exists(private_key_path):
-        print("La clave privada ya existe.")
-    else:
+    if not os.path.exists(private_key_path):
         # Generar clave privada y pública si no existen
         os.system(f"ssh-keygen -t rsa -f {private_key_path} -N ''")
         print("Claves generadas con éxito.")
@@ -34,21 +32,17 @@ def crear_grupo_ad(host, usuario, contrasena, grupo):
     else:
         print("Error al copiar la clave pública al servidor.")
 
-    # Comando PowerShell para crear un grupo en Active Directory
-    script_ps = f'New-ADGroup -Name "{grupo}" -GroupScope Global'       # Al no especificar GroupSecurity, se crea uno de Seguridad por defecto
+    # Ruta del script de PowerShell en el servidor remoto
+    script_ps_path = "crear_grupo.ps1"
+
+    # Comando de ejecución de PowerShell
+    cmd_ssh = f'sshpass -p "{contrasena}" ssh {usuario}@{host} "powershell -File {script_ps_path} -grupo \'{grupo}\'"'
     
-    # Comando de ejecución
-    cmd_ssh = f'sshpass -p "{contrasena}" ssh {usuario}@{host}'
-    cmd = (
-        f'{cmd_ssh} \'powershell -NoProfile -NonInteractive -Command "$password = ConvertTo-SecureString -String \'{contrasena}\' -AsPlainText -Force; $cred = New-Object -TypeName PSCredential -ArgumentList \'{usuario}\', $password; Invoke-Command -Credential $cred -ScriptBlock {{ {script_ps} }} -ArgumentList "\'$grupo\'"\''
-    )
-
-    #cmd = f'{cmd_ssh} \'powershell -NoProfile -NonInteractive -Command "$password = ConvertTo-SecureString -String \'{contrasena}\' -AsPlainText -Force; $cred = New-Object -TypeName PSCredential -ArgumentList \'{usuario}\', $password; Invoke-Command -Credential $cred -ScriptBlock {{ {script_ps} }}"\''
-
     # Ejecutar el comando
-    subprocess.run(cmd, shell=True)
+    subprocess.run(cmd_ssh, shell=True)
 
     print(f"Grupo '{grupo}' creado con éxito en Active Directory.")
+
 
 def check_grupo(host, usuario, contrasena, grupo):
     lista_grupos = subprocess.run(['getent', 'group'], capture_output=True, text=True)
