@@ -11,14 +11,8 @@ import os
 import sys
 import subprocess
 import winrm
-
-def check_grupo(host, usuario, contrasena, grupo):
-    lista_grupos = subprocess.run(['getent', 'group'], capture_output=True, text=True)
-    if (grupo not in lista_grupos):
-        print("El grupo especificado no existe. Creando grupo...")
-        crear_grupo_ad(host, usuario, contrasena, grupo)
         
-def crear_grupo_ad(host, usuario, contrasena, grupo):
+"""def crear_grupo_ad(host, usuario, contrasena, grupo):
     sesion = winrm.Session(
         host, 
         auth=(usuario, contrasena),
@@ -32,7 +26,41 @@ def crear_grupo_ad(host, usuario, contrasena, grupo):
     resultado = sesion.run_ps(script_ps)
 
     # Imprime el resultado
-    print(resultado.std_out.decode('utf-8'))
+    print(resultado.std_out.decode('utf-8'))"""
+    
+def crear_grupo_ad(host, usuario, contrasena, grupo):
+    # Rutas de las claves SSH
+    private_key_path = os.path.expanduser("~/.ssh/id_rsa")
+    #public_key_path = private_key_path + ".pub"
+
+    # Verificar si la clave privada ya existe
+    if os.path.exists(private_key_path):
+        print("La clave privada ya existe.")
+    else:
+    # Generar clave privada y pública si no existen
+        os.system(f"ssh-keygen -t rsa -f {private_key_path} -N ''")
+        print("Claves generadas con éxito.")
+
+    # Conexión SSH
+    server = f"{usuario}@{host}"
+
+    # Verificar si la clave pública ya está en el servidor
+    cmd = f"ssh -o PasswordAuthentication=no {server} 'echo OK'"
+    result = os.system(cmd)
+
+    if result == 0:
+        print("La clave pública ya está en el servidor.")
+    else:
+    # Copiar la clave pública al servidor si no está presente
+        os.system(f"ssh-copy-id {server}")
+        print("Clave pública copiada con éxito al servidor.")
+
+
+def check_grupo(host, usuario, contrasena, grupo):
+    lista_grupos = subprocess.run(['getent', 'group'], capture_output=True, text=True)
+    if grupo not in lista_grupos.stdout:
+        print("El grupo especificado no existe. Creando grupo...")
+        crear_grupo_ad(host, usuario, contrasena, grupo)
 
 def crea_recurso(recurso, ruta, grupo):
     with open("plantilla_recurso", 'r') as plantilla_recurso:
