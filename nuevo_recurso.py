@@ -10,7 +10,7 @@
 import os
 import sys
 import subprocess
-import winrm
+#import winrm
         
 """def crear_grupo_ad(host, usuario, contrasena, grupo):
     sesion = winrm.Session(
@@ -58,7 +58,7 @@ def crear_grupo_ad(host, usuario, contrasena, grupo):
     
     # Comando de ejecución
     cmd_ssh = f'sshpass -p "{contrasena}" ssh {usuario}@{host}'
-    cmd = f'{cmd_ssh} \'powershell -NoProfile -NonInteractive -Command "$password = ConvertTo-SecureString -String \'{contrasena}\' -AsPlainText -Force; $cred = New-Object -TypeName PSCredential -ArgumentList \'{usuario_ps}\', $password; Invoke-Command -Credential $cred -ScriptBlock {{ {script_ps} }}"\''
+    cmd = f'{cmd_ssh} \'powershell -NoProfile -NonInteractive -Command "$password = ConvertTo-SecureString -String \'{contrasena}\' -AsPlainText -Force; $cred = New-Object -TypeName PSCredential -ArgumentList \'{usuario}\', $password; Invoke-Command -Credential $cred -ScriptBlock {{ {script_ps} }}"\''
 
     # Ejecutar el comando
     subprocess.run(cmd, shell=True)
