@@ -9,26 +9,7 @@
 
 import os
 import sys
-import subprocess
-#import winrm
-        
-"""def crear_grupo_ad(host, usuario, contrasena, grupo):
-    sesion = winrm.Session(
-        host, 
-        auth=(usuario, contrasena),
-        server_cert_validation='ignore'                                 # Ignora la validación del certificado en entornos de prueba
-    )
-
-    # Comando PowerShell para crear un grupo en Active Directory
-    script_ps = f'New-ADGroup -Name "{grupo}" -GroupScope Global'       # Al no especificar GroupSecurity, se crea uno de Seguridad por defecto
-
-    # Ejecuta el script
-    resultado = sesion.run_ps(script_ps)
-
-    # Imprime el resultado
-    print(resultado.std_out.decode('utf-8'))"""
-    
-import os
+import subprocess    
 
 def crear_grupo_ad(host, usuario, contrasena, grupo):
     # Rutas de las claves SSH
@@ -58,7 +39,11 @@ def crear_grupo_ad(host, usuario, contrasena, grupo):
     
     # Comando de ejecución
     cmd_ssh = f'sshpass -p "{contrasena}" ssh {usuario}@{host}'
-    cmd = f'{cmd_ssh} \'powershell -NoProfile -NonInteractive -Command "$password = ConvertTo-SecureString -String \'{contrasena}\' -AsPlainText -Force; $cred = New-Object -TypeName PSCredential -ArgumentList \'{usuario}\', $password; Invoke-Command -Credential $cred -ScriptBlock {{ {script_ps} }}"\''
+    cmd = (
+        f'{cmd_ssh} \'powershell -NoProfile -NonInteractive -Command "$password = ConvertTo-SecureString -String \'{contrasena}\' -AsPlainText -Force; $cred = New-Object -TypeName PSCredential -ArgumentList \'{usuario}\', $password; Invoke-Command -Credential $cred -ScriptBlock {{ {script_ps} }} -ArgumentList "\'$grupo\'"\''
+    )
+
+    #cmd = f'{cmd_ssh} \'powershell -NoProfile -NonInteractive -Command "$password = ConvertTo-SecureString -String \'{contrasena}\' -AsPlainText -Force; $cred = New-Object -TypeName PSCredential -ArgumentList \'{usuario}\', $password; Invoke-Command -Credential $cred -ScriptBlock {{ {script_ps} }}"\''
 
     # Ejecutar el comando
     subprocess.run(cmd, shell=True)
